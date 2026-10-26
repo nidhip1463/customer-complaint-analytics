@@ -1,0 +1,136 @@
+-- Customer Complaint Analytics
+-- Dataset: CFPB credit card complaints, 2024
+-- Database: customer_complaint_analytics
+-- Table: complaints
+
+USE customer_complaint_analytics;
+
+-- 1. Overall distribution of company response outcomes
+
+SELECT
+company_response_to_consumer AS response_outcome,
+COUNT(*) AS complaint_count,
+ROUND(
+100.0 * COUNT(*) / (SELECT COUNT(*) FROM complaints),
+2
+) AS percentage
+FROM complaints
+GROUP BY company_response_to_consumer
+ORDER BY complaint_count DESC;
+
+-- 2. Companies with the lowest timely response percentages
+-- Only companies with at least 100 complaints
+
+SELECT
+company,
+COUNT(*) AS total_complaints,
+SUM(CASE WHEN timely_response = 'Yes' THEN 1 ELSE 0 END)
+AS timely_responses,
+ROUND(
+100.0 * SUM(CASE WHEN timely_response = 'Yes' THEN 1 ELSE 0 END)
+/ COUNT(*),
+2
+) AS timely_response_percentage
+FROM complaints
+GROUP BY company
+HAVING COUNT(*) >= 100
+ORDER BY timely_response_percentage ASC
+LIMIT 10;
+
+-- 3. Companies with the highest number of monetary-relief complaints
+
+SELECT
+company,
+COUNT(*) AS monetary_relief_complaints
+FROM complaints
+WHERE company_response_to_consumer = 'Closed with monetary relief'
+GROUP BY company
+ORDER BY monetary_relief_complaints DESC
+LIMIT 10;
+
+-- 4. Companies with the highest monetary-relief percentages
+-- Only companies with at least 100 complaints
+
+SELECT
+company,
+COUNT(*) AS total_complaints,
+SUM(
+CASE
+WHEN company_response_to_consumer = 'Closed with monetary relief'
+THEN 1
+ELSE 0
+END
+) AS monetary_relief_complaints,
+ROUND(
+100.0 * SUM(
+CASE
+WHEN company_response_to_consumer = 'Closed with monetary relief'
+THEN 1
+ELSE 0
+END
+) / COUNT(*),
+2
+) AS monetary_relief_percentage
+FROM complaints
+GROUP BY company
+HAVING COUNT(*) >= 100
+ORDER BY monetary_relief_percentage DESC
+LIMIT 10;
+
+-- 5. States with the highest monetary-relief percentages
+-- Only states with at least 100 complaints
+
+SELECT
+state,
+COUNT(*) AS total_complaints,
+SUM(
+CASE
+WHEN company_response_to_consumer = 'Closed with monetary relief'
+THEN 1
+ELSE 0
+END
+) AS monetary_relief_complaints,
+ROUND(
+100.0 * SUM(
+CASE
+WHEN company_response_to_consumer = 'Closed with monetary relief'
+THEN 1
+ELSE 0
+END
+) / COUNT(*),
+2
+) AS monetary_relief_percentage
+FROM complaints
+WHERE state IS NOT NULL
+GROUP BY state
+HAVING COUNT(*) >= 100
+ORDER BY monetary_relief_percentage DESC
+LIMIT 10;
+
+-- 6. Monthly complaint volume and monetary-relief percentages
+
+SELECT
+MONTH(date_received) AS month_number,
+MONTHNAME(date_received) AS month_name,
+COUNT(*) AS total_complaints,
+SUM(
+CASE
+WHEN company_response_to_consumer = 'Closed with monetary relief'
+THEN 1
+ELSE 0
+END
+) AS monetary_relief_complaints,
+ROUND(
+100.0 * SUM(
+CASE
+WHEN company_response_to_consumer = 'Closed with monetary relief'
+THEN 1
+ELSE 0
+END
+) / COUNT(*),
+2
+) AS monetary_relief_percentage
+FROM complaints
+WHERE date_received IS NOT NULL
+GROUP BY MONTH(date_received), MONTHNAME(date_received)
+ORDER BY month_number;
